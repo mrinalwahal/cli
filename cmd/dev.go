@@ -552,7 +552,7 @@ func getContainerConfigs(client *client.Client, options nhost.Configuration) ([]
 	requiredImages := []string{
 		fmt.Sprintf("nhost/postgres:%v", postgresConfig.Version),
 		fmt.Sprintf("%s:%v", hasuraConfig.Image, hasuraConfig.Version),
-		fmt.Sprintf("nhost/hbp-mrinal:%v", hbpConfig.Version),
+		fmt.Sprintf("nhost/hasura-backend-plus:%v", hbpConfig.Version),
 		fmt.Sprintf("minio/minio:%v", minioConfig.Version),
 	}
 
@@ -867,7 +867,7 @@ func getContainerConfigs(client *client.Client, options nhost.Configuration) ([]
 				Retries:     10,
 				StartPeriod: 60000000000,
 			},
-			Image:        fmt.Sprintf(`nhost/hbp-mrinal:%v`, hbpConfig.Version),
+			Image:        fmt.Sprintf(`nhost/hasura-backend-plus:%v`, hbpConfig.Version),
 			Env:          containerVariables,
 			ExposedPorts: nat.PortSet{nat.Port(strconv.Itoa(hbpConfig.Port)): struct{}{}},
 
