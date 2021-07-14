@@ -954,7 +954,7 @@ func getAPIContainerConfig(
 			},
 			Env:          containerVariables,
 			ExposedPorts: nat.PortSet{nat.Port(strconv.Itoa(apiConfig.Port)): struct{}{}},
-			Image:        "nhost_api",
+			Image:        fmt.Sprintf("nhost/nodeapi:%v", "latest"),
 			Cmd:          []string{"sh", "-c", "./install.sh && ./entrypoint-dev.sh"},
 		},
 		"host_config": &container.HostConfig{

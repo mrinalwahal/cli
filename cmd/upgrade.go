@@ -25,6 +25,9 @@ package cmd
 
 import (
 	"context"
+	"os/exec"
+	"os/user"
+	"path/filepath"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/mrinalwahal/cli/nhost"
@@ -51,28 +54,53 @@ utility and upgrade to it.`,
 		} else {
 			log.WithField("component", release.TagName).Info("New version available")
 
+			if !isRoot() {
+				log.Fatal("Run the command with root permissions")
+			}
+
 			asset := release.Asset()
 
 			// initialize hashicorp go-getter client
 			client := &getter.Client{
-				Ctx: context.Background(),
-				//define the destination to where the directory will be stored. This will create the directory if it doesnt exist
-				Dst:  nhost.WORKING_DIR,
+				Ctx:  context.Background(),
 				Dir:  false,
 				Src:  asset.BrowserDownloadURL,
 				Mode: getter.ClientModeDir,
 			}
 
-			//download the files
+			// get installed binary destination
+			DESTINATION, err := exec.LookPath("nhost")
+			if err != nil {
+				log.WithField("compnent", Version).Debug(err)
+				log.WithField("compnent", Version).Fatal("Failed to fetch installed binary path")
+			}
+			client.Dst = filepath.Dir(DESTINATION)
+			log.WithField("compnent", release.TagName).Debugf("Installing in %s", client.Dst)
+
+			// remove the installed binary
+			if err := deletePath(DESTINATION); err != nil {
+				log.WithField("compnent", Version).Debug(err)
+				log.WithField("compnent", Version).Fatal("Failed to remove already installed binary")
+			}
+
+			// download the new one
 			if err := client.Get(); err != nil {
 				log.WithField("compnent", release.TagName).Debug(err)
 				log.WithField("compnent", release.TagName).Fatal("Failed to download release")
 			}
 
-			log.WithField("compnent", release.TagName).Info("New release downloaded in current working directory")
-			log.Infof("Use it with: %v./nhost -- help%v", Bold, Reset)
+			log.WithField("compnent", release.TagName).Info("New release downloaded")
+			log.Infof("Check version with: %vnhost version%v", Bold, Reset)
 		}
 	},
+}
+
+func isRoot() bool {
+	currentUser, err := user.Current()
+	if err != nil {
+		return false
+	}
+	return currentUser.Username == "root"
 }
 
 func init() {

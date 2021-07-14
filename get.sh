@@ -100,11 +100,12 @@ url=https://github.com/mrinalwahal/cli/releases/download/$version/$targetFile
 
 try curl -L -f -o $targetFile "$url"
 try chmod +x $targetFile
-try tar -xvf $targetFile
+try rm /usr/local/bin/nhost
+try tar -xvf $targetFile -C /usr/local/bin
 rm ./$targetFile
 
 log "${GREEN}Download complete!${NC}"
 echo
-./nhost version
+nhost version
 echo
-log "${BLUE}Use Nhost CLI with: ./nhost --help${NC}"
+log "${BLUE}Use Nhost CLI with: nhost --help${NC}"
