@@ -123,32 +123,39 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 
 			// check if project is already initialized
-			if pathExists(nhost.NHOST_DIR) {
+			if !pathExists(nhost.NHOST_DIR) {
 
-				// start the "dev" command
-				devCmd.Run(cmd, args)
-			} else {
+				prompt := promptui.Prompt{
+					Label:     "Do you want to initialize an Nhost project in this directory",
+					IsConfirm: true,
+				}
+
+				approved, err := prompt.Run()
+				if err != nil {
+					os.Exit(0)
+				}
 
 				// start the "init" command
-				initCmd.Run(cmd, args)
+				if strings.ToLower(approved) == "y" || strings.ToLower(approved) == "yes" {
+					initCmd.Run(cmd, args)
+				}
 
 				// configure interative prompt
-				frontendPrompt := promptui.Prompt{
+				prompt = promptui.Prompt{
 					Label:     "Do you want to setup a front-end project template",
 					IsConfirm: true,
 				}
 
-				frontendApproval, _ := frontendPrompt.Run()
+				approved, _ = prompt.Run()
 
-				if strings.ToLower(frontendApproval) == "y" || strings.ToLower(frontendApproval) == "yes" {
-
+				// start the "templates" command
+				if strings.ToLower(approved) == "y" || strings.ToLower(approved) == "yes" {
 					templatesCmd.Run(cmd, args)
-
 				}
-
-				// start the "dev" command
-				devCmd.Run(cmd, args)
 			}
+
+			// start the "dev" command
+			devCmd.Run(cmd, args)
 
 		},
 	}
