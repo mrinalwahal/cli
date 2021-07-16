@@ -26,7 +26,6 @@ package cmd
 import (
 	"context"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 
 	"github.com/hashicorp/go-getter"
@@ -53,10 +52,6 @@ utility and upgrade to it.`,
 			log.WithField("component", release.TagName).Info("You already have the latest version. Hurray!")
 		} else {
 			log.WithField("component", release.TagName).Info("New version available")
-
-			if !isRoot() {
-				log.Fatal("Run the command with root permissions")
-			}
 
 			asset := release.Asset()
 
@@ -93,14 +88,6 @@ utility and upgrade to it.`,
 			log.Infof("Check version with: %vnhost version%v", Bold, Reset)
 		}
 	},
-}
-
-func isRoot() bool {
-	currentUser, err := user.Current()
-	if err != nil {
-		return false
-	}
-	return currentUser.Username == "root"
 }
 
 func init() {

@@ -40,12 +40,8 @@ var envCmd = &cobra.Command{
 	Use:     "env",
 	Aliases: []string{"e"},
 	Short:   "Handle your Nhost env vars",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `List and sync your environment variables
+for current project between your local environment and the Nhost remote.`,
 	/*
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("env called")
