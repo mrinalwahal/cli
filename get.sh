@@ -17,7 +17,7 @@ NC='\033[0m'
 INSTALL_PATH=${INSTALL_PATH:-"/usr/local/bin"}
 NEED_SUDO=1
 
-REPO="mrinalwahal/cli"
+REPO="nhost/cli-go"
 
 function maybe_sudo() {
     if [[ "$NEED_SUDO" == '1' ]]; then
@@ -45,8 +45,8 @@ if [ ! $version ]; then
     log ""
     log "2. Open your web browser and go to https://github.com/$REPO/releases/latest"
     log "2. Download the CLI from latest release for your platform. Name it 'nhost'."
-    log "3. chmod +x ./nhost"
-    log "4. mv ./nhost /usr/local/bin"
+    log "3. chmod +x ./cli"
+    log "4. mv ./cli /usr/local/bin/nhost"
     log "${NC}"
     die "exiting..."
 fi
@@ -91,7 +91,7 @@ fi
 
 # some variables
 suffix="-${platform}-${arch}"
-targetFile="nhost-$version$suffix.tar.gz"
+targetFile="cli-$version$suffix.tar.gz"
 
 if [ -e $targetFile ]; then
     rm $targetFile
@@ -103,11 +103,11 @@ url=https://github.com/$REPO/releases/download/$version/$targetFile
 try curl -L -f -o $targetFile "$url"
 try chmod +x $targetFile
 try tar -xvf $targetFile
-rm ./$targetFile
+try rm ./$targetFile
 
 log "${GREEN}Download complete!${NC}"
 echo
-mv ./nhost ${INSTALL_PATH}/nhost
+try sudo mv ./cli ${INSTALL_PATH}/nhost
 nhost version
 echo
 log "${BLUE}Use Nhost CLI with: nhost --help${NC}"
