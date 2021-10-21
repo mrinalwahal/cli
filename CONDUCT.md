@@ -13,7 +13,7 @@ Deprecation of Go versions or dependent packages will only occur in major releas
 Maintainers will make every effort to release security patches in the case of a medium to high severity CVE directly impacting the utility. The speed in which these patches reach a release is up to the discretion of the maintainers. A low severity CVE may be a lower priority than a high severity one.
 
 ### Communication
-Nhost CLI maintainers will use [GitHub discussions](https://github.com/nhost/cli/discussions) and the [Nhost discord server](https://discord.com/invite/9V7Qb2U) as the primary means of communication with the community. This is to foster open communication with all users and contributors.
+Nhost CLI maintainers will use [GitHub discussions](https://github.com/mrinalwahal/cli/discussions) and the [Nhost discord server](https://discord.com/invite/9V7Qb2U) as the primary means of communication with the community. This is to foster open communication with all users and contributors.
 
 ### Breaking Changes
 Breaking changes are generally allowed in the canary branch, as this is the branch used to develop the next release of Nhost.

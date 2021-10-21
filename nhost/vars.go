@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/nhost/cli-go/logger"
+	"github.com/mrinalwahal/cli/logger"
 )
 
 var (
@@ -76,7 +76,7 @@ var (
 	NODE_MODULES_PATH = filepath.Join(ROOT, "node_modules")
 
 	// package repository to download latest release from
-	REPOSITORY = "nhost/cli-go"
+	REPOSITORY = "mrinalwahal/cli"
 
 	// initialize the project prefix
 	PREFIX = filepath.Base(WORKING_DIR)

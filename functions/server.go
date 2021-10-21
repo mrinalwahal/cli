@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nhost/cli-go/environment"
-	"github.com/nhost/cli-go/logger"
-	"github.com/nhost/cli-go/nhost"
-	"github.com/nhost/cli-go/util"
+	"github.com/mrinalwahal/cli/environment"
+	"github.com/mrinalwahal/cli/logger"
+	"github.com/mrinalwahal/cli/nhost"
+	"github.com/mrinalwahal/cli/util"
 	"github.com/sirupsen/logrus"
 )
 

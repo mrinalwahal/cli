@@ -17,7 +17,7 @@ NC='\033[0m'
 INSTALL_PATH=${INSTALL_PATH:-"/usr/local/bin"}
 NEED_SUDO=1
 
-REPO="nhost/cli-go"
+REPO="mrinalwahal/cli"
 
 function maybe_sudo() {
     if [[ "$NEED_SUDO" == '1' ]]; then

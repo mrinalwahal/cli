@@ -29,8 +29,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/nhost/cli-go/nhost"
-	"github.com/nhost/cli-go/util"
+	"github.com/mrinalwahal/cli/nhost"
+	"github.com/mrinalwahal/cli/util"
 	"github.com/spf13/cobra"
 )
 

@@ -11,7 +11,7 @@ others who are seeking help. Harassment of any kind will not be tolerated.
 ## Questions
 
 If you have questions regarding Nhost, feel free to ask it in the community
-[Nhost Discord Server](https://discord.com/invite/9V7Qb2U) or [GitHub discussions](https://github.com/nhost/cli/discussions).
+[Nhost Discord Server](https://discord.com/invite/9V7Qb2U) or [GitHub discussions](https://github.com/mrinalwahal/cli/discussions).
 
 ## Filing a bug or feature
 
