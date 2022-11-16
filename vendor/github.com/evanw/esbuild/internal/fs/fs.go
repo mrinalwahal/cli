@@ -46,7 +46,6 @@ func (e *Entry) Symlink(fs FS) string {
 }
 
 type accessedEntries struct {
-	mutex      sync.Mutex
 	wasPresent map[string]bool
 
 	// If this is nil, "SortedKeys()" was not accessed. This means we should
@@ -66,16 +65,18 @@ type accessedEntries struct {
 	// or removed. But if "SortedKeys()" is called, we need to invalidate the
 	// build if anything about the set of entries in this directory is changed.
 	allEntries []string
+
+	mutex sync.Mutex
 }
 
 type DirEntries struct {
-	dir             string
 	data            map[string]*Entry
 	accessedEntries *accessedEntries
+	dir             string
 }
 
 func MakeEmptyDirEntries(dir string) DirEntries {
-	return DirEntries{dir, make(map[string]*Entry), nil}
+	return DirEntries{dir: dir, data: make(map[string]*Entry)}
 }
 
 type DifferentCase struct {
@@ -109,6 +110,17 @@ func (entries DirEntries) Get(query string) (*Entry, *DifferentCase) {
 	}
 
 	return nil, nil
+}
+
+// This function lets you "peek" at the number of entries without watch mode
+// considering the number of entries as having been observed. This is used when
+// generating debug log messages to log the number of entries without causing
+// watch mode to rebuild when the number of entries has been changed.
+func (entries DirEntries) PeekEntryCount() int {
+	if entries.data != nil {
+		return len(entries.data)
+	}
+	return 0
 }
 
 func (entries DirEntries) SortedKeys() (keys []string) {
