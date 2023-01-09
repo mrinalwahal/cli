@@ -3,6 +3,16 @@
 
 package api
 
+// This file implements the "Serve()" function in esbuild's public API. It
+// provides a basic web server that can serve a directory tree over HTTP. When
+// a directory is visited the "index.html" will be served if present, otherwise
+// esbuild will automatically generate a directory listing page with links for
+// each file in the directory. If there is a build configured that generates
+// output files, those output files are not written to disk but are instead
+// "overlayed" virtually on top of the real file system. The server responds to
+// HTTP requests for output files from the build with the latest in-memory
+// build results.
+
 import (
 	"fmt"
 	"net"
@@ -15,7 +25,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/evanw/esbuild/internal/config"
 	"github.com/evanw/esbuild/internal/fs"
 	"github.com/evanw/esbuild/internal/helpers"
 	"github.com/evanw/esbuild/internal/logger"
@@ -25,21 +34,21 @@ import (
 // Serve API
 
 type apiHandler struct {
-	mutex            sync.Mutex
-	outdirPathPrefix string
-	servedir         string
-	options          *config.Options
 	onRequest        func(ServeOnRequestArgs)
 	rebuild          func() BuildResult
 	currentBuild     *runningBuild
 	fs               fs.FS
-	serveWaitGroup   sync.WaitGroup
 	serveError       error
+	absOutputDir     string
+	outdirPathPrefix string
+	servedir         string
+	serveWaitGroup   sync.WaitGroup
+	mutex            sync.Mutex
 }
 
 type runningBuild struct {
-	waitGroup sync.WaitGroup
 	result    BuildResult
+	waitGroup sync.WaitGroup
 }
 
 func (h *apiHandler) build() BuildResult {
@@ -344,9 +353,13 @@ func (h *apiHandler) matchQueryPathToResult(
 		queryDir += "/"
 	}
 
+	h.mutex.Lock()
+	absOutputDir := h.absOutputDir
+	h.mutex.Unlock()
+
 	// Check the output files for a match
 	for _, file := range result.OutputFiles {
-		if relPath, ok := h.fs.Rel(h.options.AbsOutputDir, file.Path); ok {
+		if relPath, ok := h.fs.Rel(absOutputDir, file.Path); ok {
 			relPath = strings.ReplaceAll(relPath, "\\", "/")
 
 			// An exact match
@@ -382,15 +395,41 @@ func respondWithDirList(queryPath string, dirEntries map[string]bool, fileEntrie
 		queryDir += "/"
 	}
 	html := strings.Builder{}
-	html.WriteString(`<!doctype html>`)
-	html.WriteString(`<meta charset="utf8">`)
-	html.WriteString(`<title>Directory: `)
+	html.WriteString("<!doctype html>\n")
+	html.WriteString("<meta charset=\"utf8\">\n")
+	html.WriteString("<style>\n")
+	html.WriteString("body { margin: 30px; color: #222; background: #fff; font: 16px/22px sans-serif; }\n")
+	html.WriteString("a { color: inherit; text-decoration: none; }\n")
+	html.WriteString("a:hover { text-decoration: underline; }\n")
+	html.WriteString("a:visited { color: #777; }\n")
+	html.WriteString("@media (prefers-color-scheme: dark) {\n")
+	html.WriteString("  body { color: #fff; background: #222; }\n")
+	html.WriteString("  a:visited { color: #aaa; }\n")
+	html.WriteString("}\n")
+	html.WriteString("</style>\n")
+	html.WriteString("<title>Directory: ")
 	html.WriteString(escapeForHTML(queryDir))
-	html.WriteString(`</title>`)
-	html.WriteString(`<h1>Directory: `)
-	html.WriteString(escapeForHTML(queryDir))
-	html.WriteString(`</h1>`)
-	html.WriteString(`<ul>`)
+	html.WriteString("</title>\n")
+	html.WriteString("<h1>Directory: ")
+	var parts []string
+	if queryPath == "/" {
+		parts = []string{""}
+	} else {
+		parts = strings.Split(queryPath, "/")
+	}
+	for i, part := range parts {
+		if i+1 < len(parts) {
+			html.WriteString("<a href=\"")
+			html.WriteString(escapeForHTML(strings.Join(parts[:i+1], "/")))
+			html.WriteString("/\">")
+		}
+		html.WriteString(escapeForHTML(part))
+		html.WriteString("/")
+		if i+1 < len(parts) {
+			html.WriteString("</a>")
+		}
+	}
+	html.WriteString("</h1>\n")
 
 	// Link to the parent directory
 	if queryPath != "/" {
@@ -398,7 +437,7 @@ func respondWithDirList(queryPath string, dirEntries map[string]bool, fileEntrie
 		if parentDir != "/" {
 			parentDir += "/"
 		}
-		html.WriteString(fmt.Sprintf(`<li><a href="%s">../</a></li>`, escapeForAttribute(parentDir)))
+		html.WriteString(fmt.Sprintf("<div>📁 <a href=\"%s\">../</a></div>\n", escapeForAttribute(parentDir)))
 	}
 
 	// Link to child directories
@@ -408,7 +447,7 @@ func respondWithDirList(queryPath string, dirEntries map[string]bool, fileEntrie
 	}
 	sort.Strings(strings)
 	for _, entry := range strings {
-		html.WriteString(fmt.Sprintf(`<li><a href="%s/">%s/</a></li>`, escapeForAttribute(path.Join(queryPath, entry)), escapeForHTML(entry)))
+		html.WriteString(fmt.Sprintf("<div>📁 <a href=\"%s/\">%s/</a></div>\n", escapeForAttribute(path.Join(queryPath, entry)), escapeForHTML(entry)))
 	}
 
 	// Link to files in the directory
@@ -418,10 +457,9 @@ func respondWithDirList(queryPath string, dirEntries map[string]bool, fileEntrie
 	}
 	sort.Strings(strings)
 	for _, entry := range strings {
-		html.WriteString(fmt.Sprintf(`<li><a href="%s">%s</a></li>`, escapeForAttribute(path.Join(queryPath, entry)), escapeForHTML(entry)))
+		html.WriteString(fmt.Sprintf("<div>📄 <a href=\"%s\">%s</a></div>\n", escapeForAttribute(path.Join(queryPath, entry)), escapeForHTML(entry)))
 	}
 
-	html.WriteString(`</ul>`)
 	return []byte(html.String())
 }
 
@@ -568,9 +606,9 @@ func serveImpl(serveOptions ServeOptions, buildOptions BuildOptions) (ServeResul
 			}
 
 			build := buildImpl(buildOptions)
-			if handler.options == nil {
-				handler.options = &build.options
-			}
+			handler.mutex.Lock()
+			handler.absOutputDir = build.options.AbsOutputDir
+			handler.mutex.Unlock()
 			return build.result
 		},
 		fs: realFS,
