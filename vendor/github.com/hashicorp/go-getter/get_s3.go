@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -20,10 +21,24 @@ import (
 // a S3 bucket.
 type S3Getter struct {
 	getter
+
+	// Timeout sets a deadline which all S3 operations should
+	// complete within.
+	//
+	// The zero value means timeout.
+	Timeout time.Duration
 }
 
 func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 	// Parse URL
+	ctx := g.Context()
+
+	if g.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
+		defer cancel()
+	}
+
 	region, bucket, path, _, creds, err := g.parseUrl(u)
 	if err != nil {
 		return 0, err
@@ -40,7 +55,7 @@ func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(path),
 	}
-	resp, err := client.ListObjects(req)
+	resp, err := client.ListObjectsWithContext(ctx, req)
 	if err != nil {
 		return 0, err
 	}
@@ -64,6 +79,12 @@ func (g *S3Getter) ClientMode(u *url.URL) (ClientMode, error) {
 
 func (g *S3Getter) Get(dst string, u *url.URL) error {
 	ctx := g.Context()
+
+	if g.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
+		defer cancel()
+	}
 
 	// Parse URL
 	region, bucket, path, _, creds, err := g.parseUrl(u)
@@ -106,7 +127,7 @@ func (g *S3Getter) Get(dst string, u *url.URL) error {
 			req.Marker = aws.String(lastMarker)
 		}
 
-		resp, err := client.ListObjects(req)
+		resp, err := client.ListObjectsWithContext(ctx, req)
 		if err != nil {
 			return err
 		}
@@ -141,6 +162,13 @@ func (g *S3Getter) Get(dst string, u *url.URL) error {
 
 func (g *S3Getter) GetFile(dst string, u *url.URL) error {
 	ctx := g.Context()
+
+	if g.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, g.Timeout)
+		defer cancel()
+	}
+
 	region, bucket, path, version, creds, err := g.parseUrl(u)
 	if err != nil {
 		return err
@@ -163,7 +191,7 @@ func (g *S3Getter) getObject(ctx context.Context, client *s3.S3, dst, bucket, ke
 		req.VersionId = aws.String(version)
 	}
 
-	resp, err := client.GetObject(req)
+	resp, err := client.GetObjectWithContext(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -181,7 +209,8 @@ func (g *S3Getter) getObject(ctx context.Context, client *s3.S3, dst, bucket, ke
 	}
 	defer body.Close()
 
-	return copyReader(dst, body, 0666, g.client.umask())
+	// There is no limit set for the size of an object from S3
+	return copyReader(dst, body, 0666, g.client.umask(), 0)
 }
 
 func (g *S3Getter) getAWSConfig(region string, url *url.URL, creds *credentials.Credentials) *aws.Config {
